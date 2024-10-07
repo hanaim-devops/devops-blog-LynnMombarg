@@ -18,58 +18,78 @@ In deze blogpost onderzoek ik hoe Fluentd kan worden toegepast in een applicatie
 ## Kubernetes
 
 ## Fluentd gebruiken
+
 Ik gebruik voor mijn opzet een applicatie die checkt of getallen priemgetallen zijn. Deze applicatie draait in Kubernetes. Voeg een nieuwe YAML file toe: "fluentd-deamonset.yaml". Hierdoor deployed Kubernetes op elke node een Fluentd pod die data kan verzamelen van alle containers in de betreffende node.
-```
+
+```yaml
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
-  name: fluentd
-  namespace: kube-system
+  annotations:
+    kompose.cmd: C:\ProgramData\chocolatey\lib\kubernetes-kompose\tools\kompose.exe convert
+    kompose.version: 1.34.0 (cbf2835db)
   labels:
-    k8s-app: fluentd-logging
+    io.kompose.service: priemtester
+  name: priemtester
 spec:
+  replicas: 1
   selector:
     matchLabels:
-      name: fluentd
+      io.kompose.service: priemtester
   template:
     metadata:
+      annotations:
+        kompose.cmd: C:\ProgramData\chocolatey\lib\kubernetes-kompose\tools\kompose.exe convert
+        kompose.version: 1.34.0 (cbf2835db)
       labels:
-        name: fluentd
+        io.kompose.service: priemtester
     spec:
       containers:
-      - name: fluentd
-        image: fluent/fluentd-kubernetes-daemonset:latest
-        env:
-        - name: FLUENT_ELASTICSEARCH_HOST
-          value: "elasticsearch.logging.svc.cluster.local"  # Elasticsearch service
-        - name: FLUENT_ELASTICSEARCH_PORT
-          value: "9200"
-        resources:
-          limits:
-            memory: 200Mi
-          requests:
-            cpu: 100m
-            memory: 200Mi
-        volumeMounts:
-        - name: varlog
-          mountPath: /var/log
-        - name: varlibdockercontainers
-          mountPath: /var/lib/docker/containers
-          readOnly: true
-      volumes:
-      - name: varlog
-        hostPath:
-          path: /var/log
-      - name: varlibdockercontainers
-        hostPath:
-          path: /var/lib/docker/containers
+        - env:
+            - name: DB_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  name: my-config
+                  key: DB_PASSWORD
+            - name: DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: my-config
+                  key: DB_URL
+            - name: DB_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: my-config
+                  key: DB_USERNAME
+            - name: SPRING_PROFILES_ACTIVE
+              value: dev
+          image: lynnmombarg/priemtester:latest
+          name: priemtester
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+      imagePullSecrets:
+        - name: my-registry-secret
+      restartPolicy: Always
+
 ```
 
 Via de volumeMounts schrijf ik alle logs in een node naar de fluentd container. Daarnaast gebruik ik Elasticsearch om de logs naartoe te sturen.
 
 Fluentd heeft een parser nodig om data te extraheren en te verwerken. De data uit Kubernetes bevat namelijk vaak metadata. Daar wil je op filteren. Ik maak hiervoor een "fluentd.conf" aan.
 
-```
+```conf
+<source>
+  @type kubernetes
+  @id input_kubernetes
+  @label @KUBERNETES
+  @log_level info
+  @kube_url https://kubernetes.default.svc:443
+  @kube_ca_file /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+  @kube_token_file /var/run/secrets/kubernetes.io/serviceaccount/token
+  @kube_namespace default
+</source>
+
 <source>
   @type tail
   path /var/log/containers/*.log
@@ -90,6 +110,40 @@ Fluentd heeft een parser nodig om data te extraheren en te verwerken. De data ui
   flush_interval 5s
 </match>
 ```
+
+Daarnaast heb ik voor het runnen van mijn fluentd pod een cluster role en een cluster role binding nodig. Hierin geef ik mezelf de rechten om namespaces te bekijken in mijn cluster.
+
+**ClusterRole.yaml**
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: fluentd-pod-reader
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "namespaces"]
+    verbs: ["get", "list", "watch"]
+```
+
+**ClusterRoleBinding.yaml**
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: fluentd-pod-reader-binding
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: fluentd-pod-reader
+  apiGroup: rbac.authorization.k8s.io
+```
+
+
 
 ## Bronvermelding
 
