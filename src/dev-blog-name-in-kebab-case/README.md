@@ -4,7 +4,7 @@
 
 *[Lynn Mombarg, oktober 2024.](https://github.com/hanaim-devops/LynnMombarg)*
 <hr/>
-
+(Iets zeggen over pitstop project)
 In deze blogpost onderzoek ik hoe Fluentd kan worden toegepast in een applicatie dat draait in Kubernetes. De eigen website (Fluentd, z.d.) legt uit dat Fluentd een open-source data verzamelaar is die de data samenvoegt tot een geheel zodat dit beter te begrijpen is. Fluentd doet dit door alle verzamelde data in een JSON format te zetten. Deze data kan bijvoorbeeld gaan over buffering, outputting of filtering en kan worden verzameld uit meerdere bronnen. De universele data kan daarna naar een output source gestuurd worden zoals Elasticsearch. Die toont de data visueel aan de gebruiker. Deze tool is handig om grip op- en kennis over je systeem te krijgen.
 <!-- TOC -->
 
@@ -18,6 +18,8 @@ In deze blogpost onderzoek ik hoe Fluentd kan worden toegepast in een applicatie
 ## Kubernetes
 
 ## Logger vs. Monitor
+
+## Hoe past dit binnen DevOps landschap, koppelen aan principes
 
 ## Fluentd gebruiken
 
@@ -156,6 +158,8 @@ kubectl get pods -n logging
 Je zou dan dit resultaat zien in je terminal:<br>
 
 <img src="plaatjes/logging-pods.png" alt="mdbook logo om weg te halen" title="maar vergeet de alt tekst niet">
+
+## Conclusie
 
 ## Bronvermelding
 
