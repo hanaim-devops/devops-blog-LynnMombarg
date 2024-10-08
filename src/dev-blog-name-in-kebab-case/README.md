@@ -17,9 +17,15 @@ In deze blogpost onderzoek ik hoe Fluentd kan worden toegepast in een applicatie
 
 ## Kubernetes
 
+## Logger vs. Monitor
+
 ## Fluentd gebruiken
 
-Ik gebruik voor mijn opzet een applicatie die checkt of getallen priemgetallen zijn. Deze applicatie draait in Kubernetes. Voeg een nieuwe YAML file toe: "fluentd-deamonset.yaml". Hierdoor deployed Kubernetes op elke node een Fluentd pod die data kan verzamelen van alle containers in de betreffende node.
+In dit onderzoek kijk ik naar twee methoden om Fluentd te installeren in een cluster. Handmatig en met Helm. Ik gebruik voor mijn opzet een applicatie die checkt of getallen priemgetallen zijn. Deze applicatie draait in Kubernetes.
+
+### Handmatige installatie
+
+Voeg een nieuwe YAML file toe: "fluentd-deamonset.yaml". Hierdoor deployed Kubernetes op elke node een Fluentd pod die data kan verzamelen van alle containers in de betreffende node.
 
 ```yaml
 apiVersion: apps/v1
@@ -44,34 +50,7 @@ spec:
       labels:
         io.kompose.service: priemtester
     spec:
-      containers:
-        - env:
-            - name: DB_PASSWORD
-              valueFrom:
-                configMapKeyRef:
-                  name: my-config
-                  key: DB_PASSWORD
-            - name: DB_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: my-config
-                  key: DB_URL
-            - name: DB_USERNAME
-              valueFrom:
-                configMapKeyRef:
-                  name: my-config
-                  key: DB_USERNAME
-            - name: SPRING_PROFILES_ACTIVE
-              value: dev
-          image: lynnmombarg/priemtester:latest
-          name: priemtester
-          ports:
-            - containerPort: 8080
-              protocol: TCP
-      imagePullSecrets:
-        - name: my-registry-secret
-      restartPolicy: Always
-
+    ...
 ```
 
 Via de volumeMounts schrijf ik alle logs in een node naar de fluentd container. Daarnaast gebruik ik Elasticsearch om de logs naartoe te sturen.
@@ -143,7 +122,40 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ```
 
+Na al deze stappen zou je een Fluentd pod moeten zien in je cluster.
 
+### Installatie met Helm
+
+Een simpele manier om Fluentd in je Kubernetes cluster te installeren is om Helm te gebruiken. Helm is een package manager voor Kuberenetes. Op deze manier heb je binnen een paar minuten Fluentd pods runnen in je cluster. Vereiste is dat je Helm hebt geinstalleerd op je machine.
+
+Voeg een Helm repo toe waar Fluentd charts gehost worden.
+
+```bash
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+```
+
+Optioneel kun je een andere namespace gebruiken voor je pods.
+
+```bash
+kubectl create namespace logging
+```
+
+Installeer Fluentd met Helm chart.
+
+```bash
+helm install fluentd bitnami/fluentd --namespace logging
+```
+
+Verifieer de pods.
+
+```bash
+kubectl get pods -n logging
+```
+
+Je zou dan dit resultaat zien in je terminal:<br>
+
+<img src="plaatjes/logging-pods.png" alt="mdbook logo om weg te halen" title="maar vergeet de alt tekst niet">
 
 ## Bronvermelding
 
