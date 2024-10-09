@@ -16,10 +16,11 @@ De eigen website (Fluentd, z.d.) legt uit dat Fluentd een open-source data verza
         - [Automatisering](#automatisering)
         - [Monitoring en Observability](#monitoring-en-observability)
         - [Integratie met CI/CD](#integratie-met-cicd)
-    - [Alternatieve tools](#alternatieve-tools)
+    - [Alternatieve tools Competitive analasys, tabel maken](#alternatieve-tools-competitive-analasys-tabel-maken)
         - [Logstash](#logstash)
         - [Vector](#vector)
-    - [Fluentd gebruiken](#fluentd-gebruiken)
+    - [Voor- en nadelen](#voor--en-nadelen)
+    - [Fluentd gebruiken Proof of concept](#fluentd-gebruiken-proof-of-concept)
         - [Handmatige installatie](#handmatige-installatie)
         - [Installatie met Helm](#installatie-met-helm)
     - [Pitstop applicatie](#pitstop-applicatie)
@@ -41,11 +42,11 @@ De Kubernetes architectuur faciliteert een aantal opties om logs te beheren. Een
 In deze blogpost kijk ik dus expliciet naar het gebruik van de Fluentd logging agent die op elke node draait. In Kubernetes heb je type DaemonSet voor een Deployment. Hiermee geef je aan dat op elke node een copy van de logging agent wilt. Een node logging agent is wel gelimiteerd tot de standaard output en -streams van de applicatie.
 
 <p align="center">
-  <img src="plaatjes/kubernetes-fluentd.webp" width="400" align="center" alt="mdbook logo om weg te halen" title="maar vergeet de alt tekst niet"><br>
+  <img src="plaatjes/kubernetes-fluentd.webp" width="320" align="center" alt="mdbook logo om weg te halen" title="maar vergeet de alt tekst niet"><br>
   (Goltsman, 2021)
 </p>
 
-Bovenstaande figuur geeft een node weer die twee pods bevat. Deze pods sturen hun logs naar de Fluentd container. Afhankelijk van de configuratie stuurt de logging agent de logs bijvoorbeeld door naar Elasticsearch, zoals in get plaatje staat. Dit kan ook een andere plugin zijn.
+Bovenstaande figuur geeft een node weer die twee pods bevat. Deze pods sturen hun logs naar de Fluentd container. Afhankelijk van de configuratie stuurt de logging agent de logs bijvoorbeeld door naar Elasticsearch, zoals in het plaatje staat. Dit kan ook een andere plugin zijn.
 
 ## Logger vs. Monitor
 
@@ -76,13 +77,13 @@ Een van de kernprincipes van DevOps is het waarborgen van zichtbaarheid in de ap
 
 Fluentd kan worden geïntegreerd met Continuous Integration/Continuous Deployment (CI/CD) pipelines om real-time logs en metrics te verzamelen. Dit stelt teams in staat om de prestaties van hun applicaties tijdens de implementatiefase te volgen en eventuele problemen onmiddellijk aan te pakken.
 
-## Alternatieve tools
+## Alternatieve tools (Competitive analasys, tabel maken)
 
 Er bestaan redelijk wat tools die ongeveer hetzelfde doen als Fluentd. Fluentd is echter wel de grootste die ook door grote bedrijven wordt gebruikt. Denk aan Amazon Web Services en Change.org. 
 
 Onderstaande alternatieven zijn te vinden op de website van CNCF Landscape (z.d.-b).
 
-### Logstash 
+### Logstash
 
 <img src="plaatjes/logo-logstash.svg" width="60" align="right" alt="mdbook logo om weg te halen" title="maar vergeet de alt tekst niet">
 
@@ -94,7 +95,21 @@ Onderstaande alternatieven zijn te vinden op de website van CNCF Landscape (z.d.
 
 "*Vector is a robust open-source log aggregator developed by Datadog. It empowers you to build observability pipelines by seamlessly fetching logs from many sources, transforming the data as needed, and routing it to your preferred destination* (Better Stack Community, 2024)"
 
-## Fluentd gebruiken
+## Voor- en nadelen
+
+**Voordelen**
+
+- Lightweight en resource-efficient.
+- Plugin ecosysteem om functionaliteit toe te voegen.
+- Zowel gestructureerde als ongestructureerde data parsen.
+- Data exporteren naar veel verschillende bestemmingen.
+
+**Nadelen**
+
+- Handmatige configuratie kan lastig zijn.
+- Minder grote selectie van plugins dan alternatief Logstash.
+
+## Fluentd gebruiken (Proof of concept)
 
 In dit onderzoek kijk ik naar twee methoden om Fluentd te installeren in een cluster. Handmatig en met Helm. Ik gebruik voor mijn opzet een applicatie die checkt of getallen priemgetallen zijn. Deze applicatie draait in Kubernetes.
 
@@ -104,31 +119,52 @@ Voeg een nieuwe YAML file toe: "fluentd-deamonset.yaml". Hierdoor deployed Kuber
 
 ```yaml
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
-  annotations:
-    kompose.cmd: C:\ProgramData\chocolatey\lib\kubernetes-kompose\tools\kompose.exe convert
-    kompose.version: 1.34.0 (cbf2835db)
+  name: fluentd
   labels:
-    io.kompose.service: priemtester
-  name: priemtester
+    k8s-app: fluentd-logging
 spec:
-  replicas: 1
   selector:
     matchLabels:
-      io.kompose.service: priemtester
+      name: fluentd
   template:
     metadata:
-      annotations:
-        kompose.cmd: C:\ProgramData\chocolatey\lib\kubernetes-kompose\tools\kompose.exe convert
-        kompose.version: 1.34.0 (cbf2835db)
       labels:
-        io.kompose.service: priemtester
+        name: fluentd
     spec:
-    ...
+      containers:
+      - name: fluentd
+        image: fluent/fluentd-kubernetes-daemonset:v1.16.5-debian-elasticsearch8-1.0
+        env:
+        - name: FLUENT_ELASTICSEARCH_HOST
+          value: "elasticsearch.logging.svc.cluster.local"  # Elasticsearch service
+        - name: FLUENT_ELASTICSEARCH_PORT
+          value: "9200"
+        resources:
+          limits:
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+      imagePullSecrets:
+        - name: my-registry-secret
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
 ```
 
-Via de volumeMounts schrijf ik alle logs in een node naar de fluentd container. Daarnaast gebruik ik Elasticsearch om de logs naartoe te sturen.
+Via de volumeMounts schrijf ik alle logs in een node naar de fluentd container. Daarnaast gebruik ik in deze configuratie Elasticsearch om de logs naartoe te sturen. Dit is echter niet van belang omdat de scope van dit onderzoek enkel Fluentd is.
 
 Fluentd heeft een parser nodig om data te extraheren en te verwerken. De data uit Kubernetes bevat namelijk vaak metadata. Daar wil je op filteren. Ik maak hiervoor een "fluentd.conf" aan.
 
@@ -232,17 +268,25 @@ Je zou dan dit resultaat zien in je terminal:<br>
 
 <img src="plaatjes/logging-pods.png" alt="mdbook logo om weg te halen" title="maar vergeet de alt tekst niet">
 
+Fluentd geeft vervolgens logs van de applicatie. Onderstaande log gaat over de leaderelection in mijn cluster.
+
+```
+2024-10-08 15:24:03 2024-10-08 13:16:31.898678959 +0000 kubernetes.var.log.containers.kube-scheduler-docker-desktop_kube-system_kube-scheduler-f8638c76e167b67996d28f3daf166d369b5685306ee6e1335dee20e1b5c68dd5.log: {"log":"I1008 13:16:31.898334       1 leaderelection.go:250] attempting to acquire leader lease kube-system/kube-scheduler...\n","stream":"stderr","docker":{"container_id":"f8638c76e167b67996d28f3daf166d369b5685306ee6e1335dee20e1b5c68dd5"},"kubernetes":{"container_name":"kube-scheduler","namespace_name":"kube-system","pod_name":"kube-scheduler-docker-desktop","container_image":"registry.k8s.io/kube-scheduler:v1.30.2","container_image_id":"docker://sha256:7820c83aa139453522e9028341d0d4f23ca2721ec80c7a47425446d11157b940","pod_id":"f710756d-0161-4506-a49f-b71285dca0a6","pod_ip":"192.168.65.3","host":"docker-desktop","labels":{"component":"kube-scheduler","tier":"control-plane"},"master_url":"https://10.96.0.1:443/api","namespace_id":"af41635f-986c-43ce-80a0-168ba2c0ff8c","namespace_labels":{"kubernetes.io/metadata.name":"kube-system"}}}
+```
+
+Conclusie uit bovenstaande methoden is dat installatie via Helm veel makkelijker is dan handmatig. Het kostte veel tijd om alle errors op te lossen en nog steeds staat de config niet helemaal goed. Met Helm heb je binnen een paar stappen een Fluentd pod staan die logt.
+
 ## Pitstop applicatie
 
 ## Conclusie
 
 ## Bronvermelding
 
-- CNCF Landscape. (z.d.). <https://landscape.cncf.io/>
-- CNCF Landscape. (z.d.-b). <https://landscape.cncf.io/guide#observability-and-analysis--observability>
-- Datadog. (2021, 3 augustus). Log Aggregation: What it is & How it works | DataDog. Datadog. <https://www.datadoghq.com/knowledge-center/log-aggregation/>
-- Fluentd. (z.d.). What is Fluentd? | Fluentd. <https://www.fluentd.org/architecture> (Geraadpleegd op 8-10-2024)
-- Goltsman, K. (2021, 7 december). Cluster-level Logging in Kubernetes with Fluentd - Supergiant.io - Medium. Medium. <https://medium.com/kubernetes-tutorials/cluster-level-logging-in-kubernetes-with-fluentd-e59aa2b6093a>
-- How to Collect, Process, and Ship Log Data with Vector | Better Stack Community. (2024, 9 januari). <https://betterstack.com/community/guides/logging/vector-explained/>
-- LogStash: Collect, Parse, Transform Logs | Elastic. (z.d.). Elastic. <https://www.elastic.co/logstash>
-- OpenAI. (2024). ChatGPT (8 okt. versie) [Large language model]. <https://chatgpt.com/c/670501ea-a374-8013-9b92-001743c0c48c>
+- CNCF Landscape. (z.d.). Geraadpleegd op 8 okt 2024, van <https://landscape.cncf.io/>
+- CNCF Landscape. (z.d.-b). Geraadpleegd op 8 okt 2024, van <https://landscape.cncf.io/guide#observability-and-analysis--observability>
+- Datadog. (2021, 3 augustus). Log Aggregation: What it is & How it works | DataDog. Datadog. Geraadpleegd op 8 okt 2024, van <https://www.datadoghq.com/knowledge-center/log-aggregation/>
+- Fluentd. (z.d.). What is Fluentd? | Fluentd. Geraadpleegd op 7 okt 2024, van <https://www.fluentd.org/architecture>
+- Goltsman, K. (2021, 7 december). Cluster-level Logging in Kubernetes with Fluentd - Supergiant.io - Medium. Medium. Geraadpleegd op 8 okt 2024, van <https://medium.com/kubernetes-tutorials/cluster-level-logging-in-kubernetes-with-fluentd-e59aa2b6093a>
+- How to Collect, Process, and Ship Log Data with Vector | Better Stack Community. (2024, 9 januari). Geraadpleegd op 8 okt 2024, van <https://betterstack.com/community/guides/logging/vector-explained/>
+- LogStash: Collect, Parse, Transform Logs | Elastic. (z.d.). Elastic. Geraadpleegd op 8 okt 2024, van <https://www.elastic.co/logstash>
+- OpenAI. (2024). ChatGPT (8 okt. versie) [Large language model]. Geraadpleegd op 8 okt 2024, van <https://chatgpt.com/c/670501ea-a374-8013-9b92-001743c0c48c>
