@@ -109,17 +109,12 @@ Onderstaande alternatieven zijn te ook vinden op de website van CNCF Landscape (
 
 ## Voor- en nadelen van Fluentd
 
-**Voordelen**
-
-- Lightweight en resource-efficient.
-- Plugin ecosysteem om functionaliteit toe te voegen.
-- Zowel gestructureerde als ongestructureerde data parsen.
-- Data exporteren naar veel verschillende bestemmingen.
-
-**Nadelen**
-
-- Handmatige configuratie kan lastig zijn.
-- Minder grote selectie van plugins dan alternatief Logstash.
+| Voordelen                                                | Nadelen                                                     |
+|----------------------------------------------------------|-------------------------------------------------------------|
+| Lightweight en resource-efficient.                       | Handmatige configuratie kan lastig zijn.                    |
+| Plugin ecosysteem om functionaliteit toe te voegen.      | Minder grote selectie van plugins dan alternatief Logstash. |
+| Zowel gestructureerde als ongestructureerde data parsen. |                                                             |
+| Data exporteren naar veel verschillende bestemmingen.    |                                                             |
 
 ## Hands-on
 
@@ -162,17 +157,19 @@ De code bevat een fluentd.conf. Zet de volgende code in het bestand.
 </match>
 ```
 
-- source: bepaalt waar Fluentd zijn logdata vandaan haalt
+De source bepaalt waar Fluentd zijn logdata vandaan haalt.
+
 - @type forward: Geeft aan dat Fluentd het forward-protocol gebruikt om logs te ontvangen.
 - port 24224: Dit is de poort waarop Fluentd luistert. Standaard is dit 24224 voor de forward-plugin.
 - bind 0.0.0.0: Dit betekent dat Fluentd verbindingen accepteert vanaf alle netwerkinterfaces.
 
-- match: bepaalt waar de gelogde gegevens naartoe moeten worden verzonden.
+De match bepaalt waar de gelogde gegevens naartoe moeten worden verzonden.
+
 - @type loki: Dit geeft aan dat Fluentd Loki gebruikt als bestemming voor de logdata.
-- url "http://loki:3100": Het URL-adres van de Loki-server die Fluentd gebruikt om logs naar toe te sturen.
+- url "<http://loki:3100>": Het URL-adres van de Loki-server die Fluentd gebruikt om logs naar toe te sturen.
 - extra_labels {"agent": "fluentd"}: Extra labels die toegevoegd worden aan de logs. In dit geval wordt het label agent: fluentd toegevoegd.
-- label block is een stukje naamgeving.
-- buffer block bevat instellingen voor de buffer van logs.
+
+Het label block is een stukje naamgeving. Buffer bevat instellingen voor de buffer van logs.
 
 De code bevat nu alleen nog docker-compose bestanden. Run eerst de docker-compose die Fluentd en Grafana opzet. Daarna de docker-compose die een niveau dieper zit in de directory en de app zelf runt.
 
