@@ -19,14 +19,15 @@ De eigen website (Fluentd, z.d.) legt uit dat Fluentd een open-source data verza
     - [Alternatieve tools Competitive analasys, tabel maken](#alternatieve-tools-competitive-analasys-tabel-maken)
         - [Logstash](#logstash)
         - [Vector](#vector)
-    - [Voor- en nadelen](#voor--en-nadelen)
+    - [Voor- en nadelen van Fluentd](#voor--en-nadelen-van-fluentd)
     - [Fluentd gebruiken Proof of concept](#fluentd-gebruiken-proof-of-concept)
-        - [Handmatige installatie](#handmatige-installatie)
+        - [Fluentd met Grafana](#fluentd-met-grafana)
         - [Installatie met Helm](#installatie-met-helm)
     - [Pitstop applicatie](#pitstop-applicatie)
     - [Conclusie](#conclusie)
     - [Bronvermelding](#bronvermelding)
 
+<!-- /TOC -->
 <!-- /TOC -->
 
 ## Kubernetes
@@ -95,7 +96,7 @@ Onderstaande alternatieven zijn te vinden op de website van CNCF Landscape (z.d.
 
 "*Vector is a robust open-source log aggregator developed by Datadog. It empowers you to build observability pipelines by seamlessly fetching logs from many sources, transforming the data as needed, and routing it to your preferred destination* (Better Stack Community, 2024)"
 
-## Voor- en nadelen
+## Voor- en nadelen van Fluentd
 
 **Voordelen**
 
@@ -111,133 +112,61 @@ Onderstaande alternatieven zijn te vinden op de website van CNCF Landscape (z.d.
 
 ## Fluentd gebruiken (Proof of concept)
 
-In dit onderzoek kijk ik naar twee methoden om Fluentd te installeren in een cluster. Handmatig en met Helm. Ik gebruik voor mijn opzet een applicatie die checkt of getallen priemgetallen zijn. Deze applicatie draait in Kubernetes.
+In dit onderzoek kijk ik naar twee methoden om Fluentd te installeren in een Kubernetes cluster.
 
-### Handmatige installatie
+### Fluentd met Grafana
 
-Voeg een nieuwe YAML file toe: "fluentd-deamonset.yaml". Hierdoor deployed Kubernetes op elke node een Fluentd pod die data kan verzamelen van alle containers in de betreffende node.
+Voor een eerste opzetje van Fluentd maak ik gebruik van een Github repository die een Python applicatie bevat die gaat over planten. Daarbij zet ik de loki plugin op Fluentd zodat ik voor mijn monitoring gebruik kan maken van Grafana. Dit doe ik met het oog op het beroepsproduct. Daar maken we namelijk gebruik van Grafana.
 
-```yaml
-apiVersion: apps/v1
-kind: DaemonSet
-metadata:
-  name: fluentd
-  labels:
-    k8s-app: fluentd-logging
-spec:
-  selector:
-    matchLabels:
-      name: fluentd
-  template:
-    metadata:
-      labels:
-        name: fluentd
-    spec:
-      containers:
-      - name: fluentd
-        image: fluent/fluentd-kubernetes-daemonset:v1.16.5-debian-elasticsearch8-1.0
-        env:
-        - name: FLUENT_ELASTICSEARCH_HOST
-          value: "elasticsearch.logging.svc.cluster.local"  # Elasticsearch service
-        - name: FLUENT_ELASTICSEARCH_PORT
-          value: "9200"
-        resources:
-          limits:
-            memory: 200Mi
-          requests:
-            cpu: 100m
-            memory: 200Mi
-        volumeMounts:
-        - name: varlog
-          mountPath: /var/log
-        - name: varlibdockercontainers
-          mountPath: /var/lib/docker/containers
-          readOnly: true
-      imagePullSecrets:
-        - name: my-registry-secret
-      volumes:
-      - name: varlog
-        hostPath:
-          path: /var/log
-      - name: varlibdockercontainers
-        hostPath:
-          path: /var/lib/docker/containers
+De eerste stap is om de Github repo te clonen.
+
+```bash
+git clone -b microservice-fluentd https://github.com/grafana/loki-fundamentals.git
 ```
 
-Via de volumeMounts schrijf ik alle logs in een node naar de fluentd container. Daarnaast gebruik ik in deze configuratie Elasticsearch om de logs naartoe te sturen. Dit is echter niet van belang omdat de scope van dit onderzoek enkel Fluentd is.
+De code bevat een fluentd.config. Zet de volgende code in het bestand.
 
-Fluentd heeft een parser nodig om data te extraheren en te verwerken. De data uit Kubernetes bevat namelijk vaak metadata. Daar wil je op filteren. Ik maak hiervoor een "fluentd.conf" aan.
-
-```conf
+```
 <source>
-  @type kubernetes
-  @id input_kubernetes
-  @label @KUBERNETES
-  @log_level info
-  @kube_url https://kubernetes.default.svc:443
-  @kube_ca_file /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-  @kube_token_file /var/run/secrets/kubernetes.io/serviceaccount/token
-  @kube_namespace default
+  @type forward
+  port 24224
+  bind 0.0.0.0
 </source>
 
-<source>
-  @type tail
-  path /var/log/containers/*.log
-  pos_file /var/log/fluentd-containers.log.pos
-  tag kube.*
-  format json
-</source>
-
-<filter kube.**>
-  @type kubernetes_metadata
-</filter>
-
-<match **>
-  @type elasticsearch
-  host "#{ENV['FLUENT_ELASTICSEARCH_HOST']}"
-  port "#{ENV['FLUENT_ELASTICSEARCH_PORT']}"
-  logstash_format true
-  flush_interval 5s
+<match>
+  @type loki
+  url "http://loki:3100"
+  extra_labels {"agent": "fluentd"}
+  <label>
+    service_name $.service
+    instance_id $.instance_id
+  </label>
+  <buffer>
+    flush_internal 10s
+    flush_at_shutdown true
+    chunk_limit_size 1m
+  </buffer>
 </match>
 ```
 
-Daarnaast heb ik voor het runnen van mijn fluentd pod een cluster role en een cluster role binding nodig. Hierin geef ik mezelf de rechten om namespaces te bekijken in mijn cluster.
+(Uitleg over config)
 
-**ClusterRole.yaml**
+De code bevat nu alleen nog docker-compose bestanden. Run eerst de docker-compose die Fluentd en Grafana opzet. Daarna de docker-compose-micro die de app zelf runt.
 
-```yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: fluentd-pod-reader
-rules:
-  - apiGroups: [""]
-    resources: ["pods", "namespaces"]
-    verbs: ["get", "list", "watch"]
+```bash
+docker compose up
+docker compose -f .\greenhouse\docker-compose-micro.yml up -d --build
 ```
 
-**ClusterRoleBinding.yaml**
+Via http://localhost:5005 kun je de plantenapp bereiken. Doe hier bijvoorbeeld een login.
 
-```yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: fluentd-pod-reader-binding
-subjects:
-  - kind: ServiceAccount
-    name: default
-    namespace: default
-roleRef:
-  kind: ClusterRole
-  name: fluentd-pod-reader
-  apiGroup: rbac.authorization.k8s.io
-```
+Ga daarna naar http://localhost:3000. Onder Explore vind je Logs. Je ziet nu verschillende services en de logs die ze hebben binnengekregen. Een voorbeeld van de logs die de main_app heeft binnengekregen zie je hieronder. De bovenstaande (laatste) request die je ziet, is een POST request vanaf mijn laptop (ip-adres 127.20.0.1) om in te loggen.
 
-Na al deze stappen zou je een Fluentd pod moeten zien in je cluster.
+<img src="plaatjes/grafana-main-app.png" alt="mdbook logo om weg te halen" title="maar vergeet de alt tekst niet">
 
 ### Installatie met Helm
 
-Een simpele manier om Fluentd in je Kubernetes cluster te installeren is om Helm te gebruiken. Helm is een package manager voor Kuberenetes. Op deze manier heb je binnen een paar minuten Fluentd pods runnen in je cluster. Vereiste is dat je Helm hebt geinstalleerd op je machine.
+Een snelle manier om Fluentd in je Kubernetes cluster te installeren is om Helm te gebruiken. Helm is een package manager voor Kuberenetes. Op deze manier heb je binnen een paar minuten Fluentd pods runnen in je cluster. Vereiste is dat je Helm hebt geinstalleerd op je machine.
 
 Voeg een Helm repo toe waar Fluentd charts gehost worden.
 
@@ -273,8 +202,6 @@ Fluentd geeft vervolgens logs van de applicatie. Onderstaande log gaat over de l
 ```
 2024-10-08 15:24:03 2024-10-08 13:16:31.898678959 +0000 kubernetes.var.log.containers.kube-scheduler-docker-desktop_kube-system_kube-scheduler-f8638c76e167b67996d28f3daf166d369b5685306ee6e1335dee20e1b5c68dd5.log: {"log":"I1008 13:16:31.898334       1 leaderelection.go:250] attempting to acquire leader lease kube-system/kube-scheduler...\n","stream":"stderr","docker":{"container_id":"f8638c76e167b67996d28f3daf166d369b5685306ee6e1335dee20e1b5c68dd5"},"kubernetes":{"container_name":"kube-scheduler","namespace_name":"kube-system","pod_name":"kube-scheduler-docker-desktop","container_image":"registry.k8s.io/kube-scheduler:v1.30.2","container_image_id":"docker://sha256:7820c83aa139453522e9028341d0d4f23ca2721ec80c7a47425446d11157b940","pod_id":"f710756d-0161-4506-a49f-b71285dca0a6","pod_ip":"192.168.65.3","host":"docker-desktop","labels":{"component":"kube-scheduler","tier":"control-plane"},"master_url":"https://10.96.0.1:443/api","namespace_id":"af41635f-986c-43ce-80a0-168ba2c0ff8c","namespace_labels":{"kubernetes.io/metadata.name":"kube-system"}}}
 ```
-
-Conclusie uit bovenstaande methoden is dat installatie via Helm veel makkelijker is dan handmatig. Het kostte veel tijd om alle errors op te lossen en nog steeds staat de config niet helemaal goed. Met Helm heb je binnen een paar stappen een Fluentd pod staan die logt.
 
 ## Pitstop applicatie
 
