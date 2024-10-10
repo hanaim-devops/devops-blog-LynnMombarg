@@ -43,10 +43,30 @@ De Kubernetes architectuur faciliteert een aantal opties om logs te beheren. Een
 - logs direct naar een backend pushen.
 
 In deze blogpost kijk ik dus expliciet naar het gebruik van de Fluentd logging agent die op elke node draait. In Kubernetes heb je type DaemonSet voor een Deployment. Hiermee geef je aan dat op elke node een copy van de logging agent wilt.
+<!-- TOC -->
 
+- [Fluentd: de universele logger](#fluentd-de-universele-logger)
+    - [Kubernetes](#kubernetes)
+    - [Logger vs. Monitor](#logger-vs-monitor)
+    - [DevOps principes](#devops-principes)
+        - [Automatisering](#automatisering)
+        - [Monitoring en Observability](#monitoring-en-observability)
+        - [Integratie met CI/CD](#integratie-met-cicd)
+    - [Alternatieve tools](#alternatieve-tools)
+        - [Logstash](#logstash)
+        - [Vector](#vector)
+        - [Vergelijking](#vergelijking)
+    - [Voor- en nadelen van Fluentd](#voor--en-nadelen-van-fluentd)
+    - [Hands-on](#hands-on)
+        - [Van docker naar Kubernetes](#van-docker-naar-kubernetes)
+        - [Helm en Bitnami](#helm-en-bitnami)
+    - [Conclusie](#conclusie)
+    - [Bronvermelding](#bronvermelding)
+
+<!-- /TOC -->
 <p align="center">
   <img src="plaatjes/kubernetes-fluentd.webp" width="320" align="center" alt="simpele overview van systeem" title="Overview"><br>
-  Figuur 1: Node architectuur (Goltsman, 2021)
+  <em>Figuur 1: Node architectuur (Goltsman, 2021)</em>
 </p>
 
 Figuur 1 geeft een node weer die twee pods bevat. Deze pods sturen hun logs naar de Fluentd container. Afhankelijk van de configuratie stuurt de logging agent de logs bijvoorbeeld door naar Elasticsearch, zoals in het plaatje staat. Dit kan ook een andere plugin zijn.
@@ -57,7 +77,7 @@ In het landschap van CNCF staat Fluentd onder de categorie Observability.
 
 <p align="center">
   <img src="plaatjes/cncf-landscape.png" align="center" alt="CNCF landscape" title="CNCF landscape"><br>
-  Figuur 2: Observability (CNCF Landscape, z.d.)
+  <em>Figuur 2: Observability (CNCF Landscape, z.d.)</em>
 </p>
 
 "*Observability is the practice and ability of a system to be understood from its external outputs*" (CNCF Landscape, z.d.-b).
@@ -90,7 +110,7 @@ Onderstaande alternatieven kun je ook vinden op de website van CNCF Landscape (z
 
 <img src="plaatjes/logo-logstash.svg" width="60" align="right" alt="logstash logo" title="Logstash">
 
-"*Logstash is a free and open server-side data processing pipeline that ingests data from a multitude of sources, transforms it, and then sends it to your favorite stash*" (LogStash: Collect, Parse, Transform Logs | Elastic, z.d.).
+"*Logstash is a free and open server-side data processing pipeline that ingests data from a multitude of sources, transforms it, and then sends it to your favorite stash*" (Elastic, z.d.).
 
 ### Vector
 
@@ -100,7 +120,7 @@ Onderstaande alternatieven kun je ook vinden op de website van CNCF Landscape (z
 
 ### Vergelijking
 
-Zoals je uit bovenstaande citaten op kan maken, zit er niet veel verschil tussen de tools in wat ze doen. Het zijn allen log aggregators die data verzamelen en door kunnen sturen. Echter zit er wel verschil in hoe de tools onder water presteren. In de onderstaande tabel maak ik een vergelijking op een aantal gebieden tussen de drie tools.
+Zoals je uit bovenstaande citaten op kan maken, zit er niet veel verschil tussen de tools in wat ze doen. Het zijn allen log aggregators die data verzamelen en door kunnen sturen. Echter zit er wel verschil in hoe de tools onder water presteren. In tabel 1 maak ik, met behulp van bronnen (Better Stack Community, 2024) (OpenAI, 2024), een vergelijking op een aantal gebieden tussen de drie tools.
 
 | Feature                     | Fluentd | Logstash | Vector |
 |-----------------------------|---------|----------|--------|
@@ -110,9 +130,11 @@ Zoals je uit bovenstaande citaten op kan maken, zit er niet veel verschil tussen
 | Log parsing                 | ++      | +        | +      |
 | Data transport              | ++      | +        | ++     |
 
-Geraadpleegde bronnen: (*Fluentd Vs Logstash: How To Choose in 2024* | Better Stack Community, 2024) en (OpenAI, 2024)
+<em>Tabel 1: Vergelijking</em>
 
 ## Voor- en nadelen van Fluentd
+
+Met hehulp van een bron (GeeksforGeeks, 2024) heb ik tabel 2 opgesteld met voor- nadelen van Fluentd.
 
 | Voordelen                                                | Nadelen                                                     |
 |----------------------------------------------------------|-------------------------------------------------------------|
@@ -121,7 +143,7 @@ Geraadpleegde bronnen: (*Fluentd Vs Logstash: How To Choose in 2024* | Better St
 | Zowel gestructureerde als ongestructureerde data parsen. |                                                             |
 | Data exporteren naar veel verschillende bestemmingen.    |                                                             |
 
-Geraadpleegde bron: (GeeksforGeeks, 2024)
+<em>Tabel 2: Voor- en nadelen</em>
 
 ## Hands-on
 
@@ -166,15 +188,15 @@ De code bevat een fluentd.conf. Zet de volgende code in het bestand.
 
 De **source** bepaalt waar Fluentd zijn logdata vandaan haalt.
 
-- **@type forward:** Geeft aan dat Fluentd het forward-protocol gebruikt om logs te ontvangen.
+- **@type forward:** Fluentd gebruikt forward-protocol om logs te ontvangen.
 - **port 24224:** Dit is de poort waarop Fluentd luistert. Standaard is dit 24224 voor de forward-plugin.
-- **bind 0.0.0.0:** Dit betekent dat Fluentd verbindingen accepteert vanaf alle netwerkinterfaces.
+- **bind 0.0.0.0:** Fluentd accepteert verbindingen vanaf alle netwerkinterfaces.
 
 De **match** bepaalt waar de gelogde gegevens naartoe moeten worden verzonden.
 
-- **@type loki:** Dit geeft aan dat Fluentd Loki gebruikt als bestemming voor de logdata.
+- **@type loki:** Fluentd gebruikt Loki als bestemming voor de logdata.
 - **url "<http://loki:3100>":** Het URL-adres van de Loki-server die Fluentd gebruikt om logs naar toe te sturen.
-- **extra_labels {"agent": "fluentd"}:** Extra labels die toegevoegd worden aan de logs. In dit geval wordt het label agent: fluentd toegevoegd.
+- **extra_labels {"agent": "fluentd"}:** Extra labels voor logs. In dit geval voegen we een label "agent: fluentd" toe.
 
 Het **label** block is een stukje naamgeving. **Buffer** bevat instellingen voor de buffer van logs.
 
@@ -187,9 +209,10 @@ docker compose -f .\greenhouse\docker-compose.yml up -d --build
 
 Via <http://localhost:5005> kun je de plantenapp bereiken. Doe hier bijvoorbeeld een login.
 
-Ga daarna naar <http://localhost:3000>. Onder Explore vind je Logs. Je ziet nu verschillende services en de logs die ze hebben binnengekregen. Een voorbeeld van de logs die de main_app heeft binnengekregen zie je hieronder. De bovenstaande (laatste) request die je ziet, is een POST request vanaf mijn laptop (ip-adres 127.20.0.1) om in te loggen.
+Ga daarna naar <http://localhost:3000>. Onder Explore vind je Logs. Je ziet nu verschillende services en de logs die ze hebben binnengekregen. Een voorbeeld van de logs die de main_app heeft binnengekregen zie je in figuur 3. De bovenstaande (laatste) request die je ziet, is een POST request vanaf mijn laptop (ip-adres 127.20.0.1) om in te loggen.
 
-<img src="plaatjes/grafana-main-app.png" alt="logs in grafana" title="Grafana">
+<img src="plaatjes/grafana-main-app.png" alt="logs in grafana" title="Grafana"><br>
+<em>Figuur 3: Grafana UI</em>
 
 Vanaf hier zet ik de applicatie over naar een Kubernetes cluster. Ik gebruik het Kompose command. Deze gebruik ik voor zowel de buitenste docker-compose als de binnenste docker compose. Doe dit dus twee keer. Vergeet niet om naar de directory te gaan waar de docker-compose in staat.
 
@@ -197,9 +220,10 @@ Vanaf hier zet ik de applicatie over naar een Kubernetes cluster. Ik gebruik het
 kompose convert
 ```
 
-Output van de kompose convert die de eerste docker-compose omzet:
+Output van de kompose convert zie je in figuur 4.
 
-<img src="plaatjes/kompose-convert-resultaat.png" alt="kompose convert resultaat" title="Kompose convert resultaat">
+<img src="plaatjes/kompose-convert-resultaat.png" alt="kompose convert resultaat" title="Kompose convert resultaat"><br>
+<em>Figuur 4: Kompose convert resultaat</em>
 
 De meest interessante files hiervan zijn natuurlijk de fluentd-deployment en de configmap. De deployment file zet ik om naar een DaemonSet. Eerder in deze blog geef ik aan dat een dergelijke log aggregator op elke node moet draaien.
 
@@ -342,9 +366,11 @@ kubectl apply -f .
 
 Et voila! Nu heb je een Kubernetes cluster draaiend die een app bevat met Fluentd als log aggregator en Grafana als monitoring tool.
 
+De volledige applicatie vind je op <https://github.com/LynnMombarg/plantapp>.
+
 ### Helm en Bitnami
 
-Een snelle manier om Fluentd in je Kubernetes cluster te installeren is om Helm te gebruiken. Helm is een package manager voor Kuberenetes. Daarnaast maak ik gebruik van Bitnami. Bitnami is een softwarebedrijf dat kant-en-klare applicatiepakketten aanbiedt voor het eenvoudig implementeren van open source-software op verschillende platforms, zoals Docker en Kubernetes. <https://bitnami.com/>
+Een snelle manier om Fluentd in je Kubernetes cluster te installeren is om Helm te gebruiken. Helm is een package manager voor Kuberenetes. Daarnaast maak ik gebruik van Bitnami. Bitnami (Bitnami, z.d.) is een softwarebedrijf dat kant-en-klare applicatiepakketten aanbiedt voor het eenvoudig implementeren van open source-software op verschillende platforms, zoals Docker en Kubernetes.
 
 Vereiste voor deze methode is dat je Helm hebt geinstalleerd op je machine.
 
@@ -373,9 +399,10 @@ Verifieer de pods.
 kubectl get pods -n logging
 ```
 
-Je zou dan dit resultaat zien in je terminal:<br>
+Je zou dan een soortgelijk resultaat zien als in figuur 5.<br>
 
-<img src="plaatjes/logging-pods.png" alt="logging pods" title="Logging pods">
+<img src="plaatjes/logging-pods.png" alt="logging pods" title="Logging pods"><br>
+<em>Figuur 5: Logging pods</em>
 
 Fluentd geeft vervolgens logs van de applicatie. Onderstaande log gaat over de leaderelection in mijn cluster.
 
@@ -417,15 +444,16 @@ Er zijn meerdere manieren om Fluentd te installeren in je Kubernetes cluster. Je
 
 ## Bronvermelding
 
+- Better Stack Community. (2024, 6 januari). *Fluentd vs Logstash: How to Choose in 2024.* Better Stack Community. Geraadpleegd op 10 okt 2024, van <https://betterstack.com/community/comparisons/fluentd-vs-logstash/#5-event-routing-fluentd-wins>
+- Better Stack Community. (2024, 9 januari). *How to Collect, Process, and Ship Log Data with Vector.* Better Stack Community. Geraadpleegd op 8 okt 2024, van <https://betterstack.com/community/guides/logging/vector-explained/>
+- Bitnami. (z.d.). *Bitnami: Packaged Applications For Any Platform - Cloud, Container, Virtual Machine.* Bitnami. Geraadpleegd op 9 okt 2024, van <https://bitnami.com/>
 - CNCF Landscape. (z.d.). Geraadpleegd op 8 okt 2024, van <https://landscape.cncf.io/>
 - CNCF Landscape. (z.d.-b). Geraadpleegd op 8 okt 2024, van <https://landscape.cncf.io/guide#observability-and-analysis--observability>
-- Datadog. (2021, 3 augustus). Log Aggregation: What it is & How it works | DataDog. Datadog. Geraadpleegd op 8 okt 2024, van <https://www.datadoghq.com/knowledge-center/log-aggregation/>
-- Fluentd. (z.d.). What is Fluentd? | Fluentd. Geraadpleegd op 7 okt 2024, van <https://www.fluentd.org/architecture>
-- Fluentd vs Logstash: How to Choose in 2024 | Better Stack Community. (2024, 6 januari). Geraadpleegd op 10 okt 2024, van <https://betterstack.com/community/comparisons/fluentd-vs-logstash/#5-event-routing-fluentd-wins>
-- GeeksforGeeks. (2024, 6 augustus). Difference Between Fluentd and Logstash. GeeksforGeeks. Geraadpleegd op 10 okt 2024, van <https://www.geeksforgeeks.org/difference-between-fluentd-and-logstash/>
-- Goltsman, K. (2021, 7 december). Cluster-level Logging in Kubernetes with Fluentd - Supergiant.io - Medium. Medium. Geraadpleegd op 8 okt 2024, van <https://medium.com/kubernetes-tutorials/cluster-level-logging-in-kubernetes-with-fluentd-e59aa2b6093a>
-- How to Collect, Process, and Ship Log Data with Vector | Better Stack Community. (2024, 9 januari). Geraadpleegd op 8 okt 2024, van <https://betterstack.com/community/guides/logging/vector-explained/>
-- LogStash: Collect, Parse, Transform Logs | Elastic. (z.d.). Elastic. Geraadpleegd op 8 okt 2024, van <https://www.elastic.co/logstash>
+- Datadog. (2021, 3 augustus). *Log Aggregation: What it is & How it works.* Datadog. Geraadpleegd op 8 okt 2024, van <https://www.datadoghq.com/knowledge-center/log-aggregation/>
+- Elastic. (z.d.). *LogStash: Collect, Parse, Transform Logs.* Elastic. Geraadpleegd op 8 okt 2024, van <https://www.elastic.co/logstash>
+- Fluentd. (z.d.). *What is Fluentd?* Fluentd. Geraadpleegd op 7 okt 2024, van <https://www.fluentd.org/architecture>
+- GeeksforGeeks. (2024, 6 augustus). *Difference Between Fluentd and Logstash.* GeeksforGeeks. Geraadpleegd op 10 okt 2024, van <https://www.geeksforgeeks.org/difference-between-fluentd-and-logstash/>
+- Goltsman, K. (2021, 7 december). *Cluster-level Logging in Kubernetes with Fluentd - Supergiant.io - Medium.* Medium. Geraadpleegd op 8 okt 2024, van <https://medium.com/kubernetes-tutorials/cluster-level-logging-in-kubernetes-with-fluentd-e59aa2b6093a>
+- Kubernetes. (z.d.). *Overview.* Kubernetes. Geraadpleegd op 9 okt 2024, van <https://kubernetes.io/docs/concepts/overview/>
 - OpenAI. (2024). ChatGPT (8 okt. versie) [Large language model]. Geraadpleegd op 8 okt 2024, van <https://chatgpt.com/c/670501ea-a374-8013-9b92-001743c0c48c>
 - OpenAI. (2024). ChatGPT (10 okt. versie) [Large language model]. Geraadpleegd op 10 okt 2024, van <https://chatgpt.com/c/6707907b-c878-8013-8a3f-50d08f08a811>
-- Overview. (z.d.). Kubernetes. Geraadpleegd op 9 okt 2024, van <https://kubernetes.io/docs/concepts/overview/>

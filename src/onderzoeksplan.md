@@ -7,15 +7,27 @@ Fluentd
 ## Doelgroep
 DevOps engineers en softwareontwikkelaars die op zoek zijn naar een tool voor monitoring in een Docker of Kubernetes omgeving. Of mensen met IT kennis die hun kennis willen verbreden.<br>
 
-<!-- TOC -->
+<img src="plaatjes/software-development-team.jpg" width="200">
+*Figuur 1*: <Beschrijving>
 
-- [Onderzoeksplan](#onderzoeksplan)
-    - [Onderwerp](#onderwerp)
-    - [Doelgroep](#doelgroep)
-    - [Hoofdvraag](#hoofdvraag)
-    - [Deelvragen](#deelvragen)
+## Hoofdvraag
+Hoe zet je Fluentd in voor logbeheer in cloud-native omgevingen zoals Kubernetes en Docker?
 
-<!-- /TOC --> Ondersteunt veel bronnen en outputs (zoals Elasticsearch, AWS, etc.).
+## Deelvragen
+- Wat is Fluentd?
+    - Logverzamelingsproces van Fluentd
+```
+ChatGPT
+Fluentd is een open-source data-inzamelings- en logmanagementtool die wordt gebruikt om loggegevens te verzamelen, verwerken en door te sturen naar verschillende opslag- of analysebestemmingen. Het is flexibel, schaalbaar en ondersteunt diverse bronnen en outputs, waardoor het populair is in cloud-native omgevingen zoals Kubernetes. Fluentd helpt organisaties bij het centraliseren van logs uit verschillende systemen voor monitoring, troubleshooting en analyse.
+```
+
+- Voor- en nadelen van Fluentd
+```
+ChatGPT
+Voordelen van Fluentd:
+
+    Open-source: Gratis te gebruiken en aanpasbaar.
+    Flexibel: Ondersteunt veel bronnen en outputs (zoals Elasticsearch, AWS, etc.).
     Schaalbaar: Geschikt voor zowel kleine als grootschalige infrastructuren.
     Cloud-native: Goed geïntegreerd met Kubernetes en Docker.
     Betrouwbaar: Gebruikt buffering en foutafhandeling voor robuuste logverwerking.
