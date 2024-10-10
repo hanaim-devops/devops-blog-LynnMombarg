@@ -7,6 +7,8 @@
 In deze blogpost onderzoek ik hoe Fluentd kan worden toegepast in een applicatie dat draait in Kubernetes. Deze technologie ga ik namelijk toepassen in het beroepsproduct waarmee we de coursefase aflsuiten. De applicatie ontwikkelen we volgens de DevOps ideologie. Ik kijk daarom ook naar het verband tussen DevOps en Fluentd.
 
 De eigen website (Fluentd, z.d.) legt uit dat Fluentd een open-source data verzamelaar is die de data samenvoegt tot een geheel zodat dit beter te begrijpen is. Fluentd doet dit door alle verzamelde data in een JSON format te zetten. Deze data kan bijvoorbeeld gaan over buffering, outputting of filtering en kan worden verzameld uit meerdere bronnen. De universele data kan daarna naar een output source gestuurd worden zoals bijvoorbeeld Elasticsearch of Grafana. Die tonen de data visueel aan de gebruiker. Fluentd is handig om grip op- en kennis over je systeem te krijgen.
+
+Ik ga aan de hand van literatuuronderzoek informatie verzamelen. Daarnaast ga ik op zoek naar concurrenten van Fluentd en maak ik een vergelijking. Tot slot ga ik Fluentd toepassen op een Kubernetes omgeving.
 <!-- TOC -->
 
 - [Fluentd: de universele logger](#fluentd-de-universele-logger)
@@ -16,7 +18,7 @@ De eigen website (Fluentd, z.d.) legt uit dat Fluentd een open-source data verza
         - [Automatisering](#automatisering)
         - [Monitoring en Observability](#monitoring-en-observability)
         - [Integratie met CI/CD](#integratie-met-cicd)
-    - [Alternatieve tools Competitive analasys, tabel maken](#alternatieve-tools-competitive-analasys-tabel-maken)
+    - [Alternatieve tools](#alternatieve-tools)
         - [Logstash](#logstash)
         - [Vector](#vector)
         - [Vergelijking](#vergelijking)
@@ -30,7 +32,7 @@ De eigen website (Fluentd, z.d.) legt uit dat Fluentd een open-source data verza
 <!-- /TOC -->
 ## Kubernetes
 
-Kubernetes is een open-source platform voor het beheren gecontainerizeerde workloads en services. Het biedt een framework om je gedistribueerde systemen veerkrachtig te maken. Zo kan het automatisch voor je schalen of omgaan met falende onderdelen in je systeem. Het gebruik van Kubernetes is daarom binnen DevOps ook bijna niet meer weg te denken. (<https://kubernetes.io/docs/concepts/overview/>)
+Kubernetes (Kubernetes, z.d.) is een open-source platform voor het beheren gecontainerizeerde workloads en services. Het biedt een framework om je gedistribueerde systemen veerkrachtig te maken. Zo kan het automatisch voor je schalen of omgaan met falende onderdelen in je systeem. Het gebruik van Kubernetes is daarom binnen DevOps ook bijna niet meer weg te denken.
 
 De blogpost van Goltsman (2021) beschrijft dat Docker containers in Kubernetes standaard outputs en standaard errors loggen. Docker redirect deze loggings naar een Kubernetes driver. Via Kubectl logs kunnen gebruikers deze logs inzien. Het probleem is echter dat als je een pod verwijdert, alle containers en hun loggings ook verwijderd worden. Dit probleem los je op door een onafhankelijke logger in te bouwen.
 
@@ -44,10 +46,10 @@ In deze blogpost kijk ik dus expliciet naar het gebruik van de Fluentd logging a
 
 <p align="center">
   <img src="plaatjes/kubernetes-fluentd.webp" width="320" align="center" alt="simpele overview van systeem" title="Overview"><br>
-  (Goltsman, 2021)
+  Figuur 1: Node architectuur (Goltsman, 2021)
 </p>
 
-Bovenstaande figuur geeft een node weer die twee pods bevat. Deze pods sturen hun logs naar de Fluentd container. Afhankelijk van de configuratie stuurt de logging agent de logs bijvoorbeeld door naar Elasticsearch, zoals in het plaatje staat. Dit kan ook een andere plugin zijn.
+Figuur 1 geeft een node weer die twee pods bevat. Deze pods sturen hun logs naar de Fluentd container. Afhankelijk van de configuratie stuurt de logging agent de logs bijvoorbeeld door naar Elasticsearch, zoals in het plaatje staat. Dit kan ook een andere plugin zijn.
 
 ## Logger vs. Monitor
 
@@ -55,7 +57,7 @@ In het landschap van CNCF staat Fluentd onder de categorie Observability.
 
 <p align="center">
   <img src="plaatjes/cncf-landscape.png" align="center" alt="CNCF landscape" title="CNCF landscape"><br>
-  (CNCF Landscape, z.d.)
+  Figuur 2: Observability (CNCF Landscape, z.d.)
 </p>
 
 "*Observability is the practice and ability of a system to be understood from its external outputs*" (CNCF Landscape, z.d.-b).
@@ -78,7 +80,7 @@ Een belangrijk DevOps-principe is het behouden van zichtbaarheid in applicaties 
 
 Teams integreren Fluentd met Continuous Integration/Continuous Deployment (CI/CD) pipelines om real-time logs en metrics te verzamelen. Zo kunnen ze de prestaties van applicaties tijdens implementaties direct monitoren en problemen meteen oplossen.
 
-## Alternatieve tools (Competitive analasys, tabel maken)
+## Alternatieve tools
 
 Er bestaan redelijk wat tools die ongeveer hetzelfde doen als Fluentd. Fluentd is echter wel de grootste. Grote bedrijven gebruiken de tool ook. Denk aan Amazon Web Services en Change.org.
 
@@ -94,7 +96,7 @@ Onderstaande alternatieven kun je ook vinden op de website van CNCF Landscape (z
 
 <img src="plaatjes/logo-vector.png" width="80" align="right" alt="vector logo" title="Vector">
 
-"*Vector is a robust open-source log aggregator developed by Datadog. It empowers you to build observability pipelines by seamlessly fetching logs from many sources, transforming the data as needed, and routing it to your preferred destination* (Better Stack Community, 2024)"
+"*Vector is a robust open-source log aggregator developed by Datadog. It empowers you to build observability pipelines by seamlessly fetching logs from many sources, transforming the data as needed, and routing it to your preferred destination*" (Better Stack Community, 2024).
 
 ### Vergelijking
 
@@ -378,7 +380,8 @@ Je zou dan dit resultaat zien in je terminal:<br>
 Fluentd geeft vervolgens logs van de applicatie. Onderstaande log gaat over de leaderelection in mijn cluster.
 
 ```JSON
-2024-10-08 15:24:03 2024-10-08 13:16:31.898678959 +0000 kubernetes.var.log.containers.kube-scheduler-docker-desktop_kube-system_kube-scheduler-f8638c76e167b67996d28f3daf166d369b5685306ee6e1335dee20e1b5c68dd5.log: {
+2024-10-08 15:24:03 2024-10-08 13:16:31.898678959 +0000 kubernetes.var.log.containers.
+kube-scheduler-docker-desktop_kube-system_kube-scheduler-f8638c76e167b67996d28f3daf166d369b5685306ee6e1335dee20e1b5c68dd5.log: {
   "log":"I1008 13:16:31.8983341 leaderelection.go:250] attempting to acquire leader lease kube-system/kube-scheduler...\n",
   "stream":"stderr",
   "docker":{
@@ -425,3 +428,4 @@ Er zijn meerdere manieren om Fluentd te installeren in je Kubernetes cluster. Je
 - LogStash: Collect, Parse, Transform Logs | Elastic. (z.d.). Elastic. Geraadpleegd op 8 okt 2024, van <https://www.elastic.co/logstash>
 - OpenAI. (2024). ChatGPT (8 okt. versie) [Large language model]. Geraadpleegd op 8 okt 2024, van <https://chatgpt.com/c/670501ea-a374-8013-9b92-001743c0c48c>
 - OpenAI. (2024). ChatGPT (10 okt. versie) [Large language model]. Geraadpleegd op 10 okt 2024, van <https://chatgpt.com/c/6707907b-c878-8013-8a3f-50d08f08a811>
+- Overview. (z.d.). Kubernetes. Geraadpleegd op 9 okt 2024, van <https://kubernetes.io/docs/concepts/overview/>
