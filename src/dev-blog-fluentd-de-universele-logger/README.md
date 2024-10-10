@@ -43,27 +43,7 @@ De Kubernetes architectuur faciliteert een aantal opties om logs te beheren. Een
 - logs direct naar een backend pushen.
 
 In deze blogpost kijk ik dus expliciet naar het gebruik van de Fluentd logging agent die op elke node draait. In Kubernetes heb je type DaemonSet voor een Deployment. Hiermee geef je aan dat op elke node een copy van de logging agent wilt.
-<!-- TOC -->
 
-- [Fluentd: de universele logger](#fluentd-de-universele-logger)
-    - [Kubernetes](#kubernetes)
-    - [Logger vs. Monitor](#logger-vs-monitor)
-    - [DevOps principes](#devops-principes)
-        - [Automatisering](#automatisering)
-        - [Monitoring en Observability](#monitoring-en-observability)
-        - [Integratie met CI/CD](#integratie-met-cicd)
-    - [Alternatieve tools](#alternatieve-tools)
-        - [Logstash](#logstash)
-        - [Vector](#vector)
-        - [Vergelijking](#vergelijking)
-    - [Voor- en nadelen van Fluentd](#voor--en-nadelen-van-fluentd)
-    - [Hands-on](#hands-on)
-        - [Van docker naar Kubernetes](#van-docker-naar-kubernetes)
-        - [Helm en Bitnami](#helm-en-bitnami)
-    - [Conclusie](#conclusie)
-    - [Bronvermelding](#bronvermelding)
-
-<!-- /TOC -->
 <p align="center">
   <img src="plaatjes/kubernetes-fluentd.webp" width="320" align="center" alt="simpele overview van systeem" title="Overview"><br>
   <em>Figuur 1: Node architectuur (Goltsman, 2021)</em>
