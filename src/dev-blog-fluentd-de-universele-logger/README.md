@@ -19,10 +19,11 @@ De eigen website (Fluentd, z.d.) legt uit dat Fluentd een open-source data verza
     - [Alternatieve tools Competitive analasys, tabel maken](#alternatieve-tools-competitive-analasys-tabel-maken)
         - [Logstash](#logstash)
         - [Vector](#vector)
+        - [Vergelijking](#vergelijking)
     - [Voor- en nadelen van Fluentd](#voor--en-nadelen-van-fluentd)
     - [Hands-on](#hands-on)
         - [Van docker naar Kubernetes](#van-docker-naar-kubernetes)
-        - [Installatie met Helm](#installatie-met-helm)
+        - [Helm en Bitnami](#helm-en-bitnami)
     - [Conclusie](#conclusie)
     - [Bronvermelding](#bronvermelding)
 
@@ -39,7 +40,7 @@ De Kubernetes architectuur faciliteert een aantal opties om logs te beheren. Een
 - gebruik van een node-niveau logging agent die op elke node draait.
 - logs direct naar een backend pushen.
 
-In deze blogpost kijk ik dus expliciet naar het gebruik van de Fluentd logging agent die op elke node draait. In Kubernetes heb je type DaemonSet voor een Deployment. Hiermee geef je aan dat op elke node een copy van de logging agent wilt. Een node logging agent is wel gelimiteerd tot de standaard output en -streams van de applicatie.
+In deze blogpost kijk ik dus expliciet naar het gebruik van de Fluentd logging agent die op elke node draait. In Kubernetes heb je type DaemonSet voor een Deployment. Hiermee geef je aan dat op elke node een copy van de logging agent wilt.
 
 <p align="center">
   <img src="plaatjes/kubernetes-fluentd.webp" width="320" align="center" alt="simpele overview van systeem" title="Overview"><br>
@@ -67,21 +68,21 @@ Fluentd valt op allerlei manieren samen met principes van DevOps. Een prompt naa
 
 ### Automatisering
 
-Fluentd automatiseert het proces van logverzameling en -verwerking. Dit vermindert handmatige inspanning en minimaliseert fouten.
+Fluentd automatiseert het verzamelen en verwerken van logs, waardoor handmatige inspanningen afnemen en de kans op fouten kleiner wordt.
 
 ### Monitoring en Observability
 
-Een van de kernprincipes van DevOps is het waarborgen van zichtbaarheid in de applicatie en infrastructuur. Fluentd verzamelt logs uit verschillende bronnen (zoals applicaties, servers en cloud-omgevingen) en maakt deze toegankelijk voor monitoringtools. Dit helpt teams bij het snel identificeren van problemen en het verbeteren van de prestaties.
+Een belangrijk DevOps-principe is het behouden van zichtbaarheid in applicaties en infrastructuur. Fluentd verzamelt logs uit diverse bronnen, zoals applicaties, servers en cloudomgevingen, en maakt deze beschikbaar voor monitoringtools. Hierdoor kunnen teams sneller problemen opsporen en de prestaties verbeteren.
 
 ### Integratie met CI/CD
 
-Fluentd kan worden geïntegreerd met Continuous Integration/Continuous Deployment (CI/CD) pipelines om real-time logs en metrics te verzamelen. Dit stelt teams in staat om de prestaties van hun applicaties tijdens de implementatiefase te volgen en eventuele problemen onmiddellijk aan te pakken.
+Teams integreren Fluentd met Continuous Integration/Continuous Deployment (CI/CD) pipelines om real-time logs en metrics te verzamelen. Zo kunnen ze de prestaties van applicaties tijdens implementaties direct monitoren en problemen meteen oplossen.
 
 ## Alternatieve tools (Competitive analasys, tabel maken)
 
-Er bestaan redelijk wat tools die ongeveer hetzelfde doen als Fluentd. Fluentd is echter wel de grootste die ook door grote bedrijven wordt gebruikt. Denk aan Amazon Web Services en Change.org.
+Er bestaan redelijk wat tools die ongeveer hetzelfde doen als Fluentd. Fluentd is echter wel de grootste. Grote bedrijven gebruiken de tool ook. Denk aan Amazon Web Services en Change.org.
 
-Onderstaande alternatieven zijn te ook vinden op de website van CNCF Landscape (z.d.-b). Ik maak een vergelijking tussen Fluentd en de twee alternatieven aan de hand van tabellen.
+Onderstaande alternatieven kun je ook vinden op de website van CNCF Landscape (z.d.-b). Ik maak een vergelijking tussen Fluentd en de twee alternatieven aan de hand van tabellen.
 
 ### Logstash
 
@@ -89,32 +90,36 @@ Onderstaande alternatieven zijn te ook vinden op de website van CNCF Landscape (
 
 "*Logstash is a free and open server-side data processing pipeline that ingests data from a multitude of sources, transforms it, and then sends it to your favorite stash*" (LogStash: Collect, Parse, Transform Logs | Elastic, z.d.).
 
-| FluentD    | Logstash | Stad         |
-|------------|----------|--------------|
-| Jan        | 25       | Amsterdam    |
-| Maria      | 30       | Rotterdam    |
-| Ahmed      | 22       | Utrecht      |
-
 ### Vector
 
 <img src="plaatjes/logo-vector.png" width="80" align="right" alt="vector logo" title="Vector">
 
 "*Vector is a robust open-source log aggregator developed by Datadog. It empowers you to build observability pipelines by seamlessly fetching logs from many sources, transforming the data as needed, and routing it to your preferred destination* (Better Stack Community, 2024)"
 
-| Naam       | Leeftijd | Stad         |
-|------------|----------|--------------|
-| Jan        | 25       | Amsterdam    |
-| Maria      | 30       | Rotterdam    |
-| Ahmed      | 22       | Utrecht      |
+### Vergelijking
+
+Zoals je uit bovenstaande citaten op kan maken, zit er niet veel verschil tussen de tools in wat ze doen. Het zijn allen log aggregators die data verzamelen en door kunnen sturen. Echter zit er wel verschil in hoe de tools onder water presteren. In de onderstaande tabel maak ik een vergelijking op een aantal gebieden tussen de drie tools.
+
+| Feature                     | Fluentd | Logstash | Vector |
+|-----------------------------|---------|----------|--------|
+| Kubernetes ondersteuning    | ++      | +        | ++     |
+| Geheugengebruik/performance | ++      | ++       | ++     |
+| Ecosystem en plugins        | ++      | +        | +      |
+| Log parsing                 | ++      | +        | +      |
+| Data transport              | ++      | +        | ++     |
+
+Geraadpleegde bronnen: (*Fluentd Vs Logstash: How To Choose in 2024* | Better Stack Community, 2024) en (OpenAI, 2024)
 
 ## Voor- en nadelen van Fluentd
 
 | Voordelen                                                | Nadelen                                                     |
 |----------------------------------------------------------|-------------------------------------------------------------|
-| Lightweight en resource-efficient.                       | Handmatige configuratie kan lastig zijn.                    |
-| Plugin ecosysteem om functionaliteit toe te voegen.      | Minder grote selectie van plugins dan alternatief Logstash. |
+| Lightweight en resource-efficient.                       | Geen ondersteuning voor multithreading.                     |
+| Plugin ecosysteem om functionaliteit toe te voegen.      |                                                             |
 | Zowel gestructureerde als ongestructureerde data parsen. |                                                             |
 | Data exporteren naar veel verschillende bestemmingen.    |                                                             |
+
+Geraadpleegde bron: (GeeksforGeeks, 2024)
 
 ## Hands-on
 
@@ -157,19 +162,19 @@ De code bevat een fluentd.conf. Zet de volgende code in het bestand.
 </match>
 ```
 
-De source bepaalt waar Fluentd zijn logdata vandaan haalt.
+De **source** bepaalt waar Fluentd zijn logdata vandaan haalt.
 
-- @type forward: Geeft aan dat Fluentd het forward-protocol gebruikt om logs te ontvangen.
-- port 24224: Dit is de poort waarop Fluentd luistert. Standaard is dit 24224 voor de forward-plugin.
-- bind 0.0.0.0: Dit betekent dat Fluentd verbindingen accepteert vanaf alle netwerkinterfaces.
+- **@type forward:** Geeft aan dat Fluentd het forward-protocol gebruikt om logs te ontvangen.
+- **port 24224:** Dit is de poort waarop Fluentd luistert. Standaard is dit 24224 voor de forward-plugin.
+- **bind 0.0.0.0:** Dit betekent dat Fluentd verbindingen accepteert vanaf alle netwerkinterfaces.
 
-De match bepaalt waar de gelogde gegevens naartoe moeten worden verzonden.
+De **match** bepaalt waar de gelogde gegevens naartoe moeten worden verzonden.
 
-- @type loki: Dit geeft aan dat Fluentd Loki gebruikt als bestemming voor de logdata.
-- url "<http://loki:3100>": Het URL-adres van de Loki-server die Fluentd gebruikt om logs naar toe te sturen.
-- extra_labels {"agent": "fluentd"}: Extra labels die toegevoegd worden aan de logs. In dit geval wordt het label agent: fluentd toegevoegd.
+- **@type loki:** Dit geeft aan dat Fluentd Loki gebruikt als bestemming voor de logdata.
+- **url "<http://loki:3100>":** Het URL-adres van de Loki-server die Fluentd gebruikt om logs naar toe te sturen.
+- **extra_labels {"agent": "fluentd"}:** Extra labels die toegevoegd worden aan de logs. In dit geval wordt het label agent: fluentd toegevoegd.
 
-Het label block is een stukje naamgeving. Buffer bevat instellingen voor de buffer van logs.
+Het **label** block is een stukje naamgeving. **Buffer** bevat instellingen voor de buffer van logs.
 
 De code bevat nu alleen nog docker-compose bestanden. Run eerst de docker-compose die Fluentd en Grafana opzet. Daarna de docker-compose die een niveau dieper zit in de directory en de app zelf runt.
 
@@ -335,11 +340,13 @@ kubectl apply -f .
 
 Et voila! Nu heb je een Kubernetes cluster draaiend die een app bevat met Fluentd als log aggregator en Grafana als monitoring tool.
 
-### Installatie met Helm
+### Helm en Bitnami
 
-Een snelle manier om Fluentd in je Kubernetes cluster te installeren is om Helm te gebruiken. Helm is een package manager voor Kuberenetes. Op deze manier heb je binnen een paar minuten Fluentd pods runnen in je cluster. Vereiste is dat je Helm hebt geinstalleerd op je machine.
+Een snelle manier om Fluentd in je Kubernetes cluster te installeren is om Helm te gebruiken. Helm is een package manager voor Kuberenetes. Daarnaast maak ik gebruik van Bitnami. Bitnami is een softwarebedrijf dat kant-en-klare applicatiepakketten aanbiedt voor het eenvoudig implementeren van open source-software op verschillende platforms, zoals Docker en Kubernetes. <https://bitnami.com/>
 
-Voeg een Helm repo toe waar Fluentd charts gehost worden. (Uitleg bitnami)
+Vereiste voor deze methode is dat je Helm hebt geinstalleerd op je machine.
+
+Voeg een Helm repo toe waar Fluentd charts gehost worden.
 
 ```bash
 helm repo add bitnami https://charts.bitnami.com/bitnami
@@ -411,7 +418,10 @@ Er zijn meerdere manieren om Fluentd te installeren in je Kubernetes cluster. Je
 - CNCF Landscape. (z.d.-b). Geraadpleegd op 8 okt 2024, van <https://landscape.cncf.io/guide#observability-and-analysis--observability>
 - Datadog. (2021, 3 augustus). Log Aggregation: What it is & How it works | DataDog. Datadog. Geraadpleegd op 8 okt 2024, van <https://www.datadoghq.com/knowledge-center/log-aggregation/>
 - Fluentd. (z.d.). What is Fluentd? | Fluentd. Geraadpleegd op 7 okt 2024, van <https://www.fluentd.org/architecture>
+- Fluentd vs Logstash: How to Choose in 2024 | Better Stack Community. (2024, 6 januari). Geraadpleegd op 10 okt 2024, van <https://betterstack.com/community/comparisons/fluentd-vs-logstash/#5-event-routing-fluentd-wins>
+- GeeksforGeeks. (2024, 6 augustus). Difference Between Fluentd and Logstash. GeeksforGeeks. Geraadpleegd op 10 okt 2024, van <https://www.geeksforgeeks.org/difference-between-fluentd-and-logstash/>
 - Goltsman, K. (2021, 7 december). Cluster-level Logging in Kubernetes with Fluentd - Supergiant.io - Medium. Medium. Geraadpleegd op 8 okt 2024, van <https://medium.com/kubernetes-tutorials/cluster-level-logging-in-kubernetes-with-fluentd-e59aa2b6093a>
 - How to Collect, Process, and Ship Log Data with Vector | Better Stack Community. (2024, 9 januari). Geraadpleegd op 8 okt 2024, van <https://betterstack.com/community/guides/logging/vector-explained/>
 - LogStash: Collect, Parse, Transform Logs | Elastic. (z.d.). Elastic. Geraadpleegd op 8 okt 2024, van <https://www.elastic.co/logstash>
 - OpenAI. (2024). ChatGPT (8 okt. versie) [Large language model]. Geraadpleegd op 8 okt 2024, van <https://chatgpt.com/c/670501ea-a374-8013-9b92-001743c0c48c>
+- OpenAI. (2024). ChatGPT (10 okt. versie) [Large language model]. Geraadpleegd op 10 okt 2024, van <https://chatgpt.com/c/6707907b-c878-8013-8a3f-50d08f08a811>
